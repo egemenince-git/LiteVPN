@@ -4,8 +4,8 @@
 
 - Repository: `egemenince-git/LiteVPN`, a personal fork of `yzfly/LiteVPN`.
 - `origin` points to the personal repository; `upstream` points to `yzfly/LiteVPN`.
-- Current release: **1.1.5**, build **8**, tag `v1.1.5`.
-- Release page: <https://github.com/egemenince-git/LiteVPN/releases/tag/v1.1.5>.
+- Current release: **1.1.7**, build **10**, tag `v1.1.7`.
+- Release page: <https://github.com/egemenince-git/LiteVPN/releases/tag/v1.1.7>.
 - The release ZIP is Developer ID signed, notarized by Apple, and stapled.
 - The `feature/wireguard` branch contains validated source for **1.1.7**, build **10**. It is not tagged or published as a GitHub release.
 - The public repository keeps the upstream GPL-3.0 license and attribution.
@@ -114,4 +114,4 @@ Version 1.1.5 adds the `utun` interface fallback because the 1.1.4 app continued
 
 ## WireGuard implementation status
 
-WireGuard uses the official WireGuard Apple implementation, vendored at revision `2fec12a6e1f6e3460b6ee483aa00ad29cddadab1`. On 2026-10-10, the signed and notarized 1.1.7 build was installed from `/Applications/LiteVPN.app`; the user confirmed a WireGuard ping, increasing traffic, and successful public IP lookup. OpenVPN profiles and their public IP lookup were also confirmed to continue working. The WireGuard feature has source on the `feature/wireguard` branch but has no GitHub release tag or release page yet.
+WireGuard uses the official WireGuard Apple implementation, vendored at revision `2fec12a6e1f6e3460b6ee483aa00ad29cddadab1`. On 2026-10-10, the signed and notarized 1.1.7 build was installed from `/Applications/LiteVPN.app`; the user confirmed a WireGuard ping, increasing traffic, and successful public IP lookup. OpenVPN profiles and their public IP lookup were also confirmed to continue working. The source and downloadable notarized app are published on GitHub as release `v1.1.7`.
