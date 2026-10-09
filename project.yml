@@ -16,8 +16,8 @@ settings:
     DEVELOPMENT_TEAM: 99U7KZC748
     CODE_SIGN_STYLE: Automatic
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.1.2"
-    CURRENT_PROJECT_VERSION: "5"
+    MARKETING_VERSION: "1.1.3"
+    CURRENT_PROJECT_VERSION: "6"
     ENABLE_USER_SCRIPT_SANDBOXING: false
     ENABLE_HARDENED_RUNTIME: true
 
@@ -92,7 +92,7 @@ targets:
         NetworkExtension:
           NEProviderClasses:
             com.apple.networkextension.packet-tunnel: $(PRODUCT_MODULE_NAME).PacketTunnelProvider
-          NEMachServiceName: 99U7KZC748.com.egemenince.LiteVPN.Tunnel
+          NEMachServiceName: 99U7KZC748.group.com.egemenince.LiteVPN.Tunnel
     entitlements:
       path: Tunnel/LiteVPNTunnel.entitlements
       properties:

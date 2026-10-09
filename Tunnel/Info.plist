@@ -25,7 +25,7 @@
 	<key>NetworkExtension</key>
 	<dict>
 		<key>NEMachServiceName</key>
-		<string>99U7KZC748.com.egemenince.LiteVPN.Tunnel</string>
+	<string>99U7KZC748.group.com.egemenince.LiteVPN.Tunnel</string>
 		<key>NEProviderClasses</key>
 		<dict>
 			<key>com.apple.networkextension.packet-tunnel</key>

@@ -8,5 +8,5 @@ enum AppConstants {
     static let tunnelBundleId = "com.egemenince.LiteVPN.Tunnel"
 
     /// Mach service used by the Network Extension system extension.
-    static let tunnelMachServiceName = "99U7KZC748.com.egemenince.LiteVPN.Tunnel"
+    static let tunnelMachServiceName = "99U7KZC748.group.com.egemenince.LiteVPN.Tunnel"
 }

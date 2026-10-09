@@ -8,6 +8,8 @@ ARCHIVE_PATH="$BUILD_DIR/LiteVPN-$STAMP.xcarchive"
 NOTARY_PROFILE="${NOTARY_PROFILE:-LiteVPN-Notary}"
 TEAM_ID="99U7KZC748"
 TUNNEL_BUNDLE_ID="com.egemenince.LiteVPN.Tunnel"
+APP_GROUP_ID="99U7KZC748.group.com.egemenince.LiteVPN"
+TUNNEL_MACH_SERVICE_NAME="$APP_GROUP_ID.Tunnel"
 : "${LITEVPN_APP_PROFILE:?Set LITEVPN_APP_PROFILE to the app's Developer ID provisioning profile name}"
 : "${LITEVPN_TUNNEL_PROFILE:?Set LITEVPN_TUNNEL_PROFILE to the system extension's Developer ID provisioning profile name}"
 
@@ -48,6 +50,12 @@ fi
 SYSTEM_EXTENSION_PACKAGE_TYPE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$SYSTEM_EXTENSION_PATH/Contents/Info.plist")
 if [[ "$SYSTEM_EXTENSION_PACKAGE_TYPE" != "SYSX" ]]; then
   echo "Expected system extension package type SYSX, found $SYSTEM_EXTENSION_PACKAGE_TYPE" >&2
+  exit 1
+fi
+
+EMBEDDED_MACH_SERVICE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :NetworkExtension:NEMachServiceName' "$SYSTEM_EXTENSION_PATH/Contents/Info.plist")
+if [[ "$EMBEDDED_MACH_SERVICE_NAME" != "$TUNNEL_MACH_SERVICE_NAME" || "$EMBEDDED_MACH_SERVICE_NAME" != "$APP_GROUP_ID"* ]]; then
+  echo "System extension Mach service must be inside app group $APP_GROUP_ID: $EMBEDDED_MACH_SERVICE_NAME" >&2
   exit 1
 fi
 
