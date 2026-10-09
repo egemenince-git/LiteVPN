@@ -45,6 +45,12 @@ if [[ "$EMBEDDED_TUNNEL_BUNDLE_ID" != "$TUNNEL_BUNDLE_ID" ]]; then
   exit 1
 fi
 
+SYSTEM_EXTENSION_PACKAGE_TYPE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$SYSTEM_EXTENSION_PATH/Contents/Info.plist")
+if [[ "$SYSTEM_EXTENSION_PACKAGE_TYPE" != "SYSX" ]]; then
+  echo "Expected system extension package type SYSX, found $SYSTEM_EXTENSION_PACKAGE_TYPE" >&2
+  exit 1
+fi
+
 SUBMISSION_ZIP="$BUILD_DIR/LiteVPN-$STAMP-for-notarization.zip"
 ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$SUBMISSION_ZIP"
 xcrun notarytool submit "$SUBMISSION_ZIP" \
