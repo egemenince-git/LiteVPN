@@ -1,9 +1,14 @@
 import SwiftUI
+import AppKit
 
 @main
 struct LiteVPNApp: App {
     @StateObject private var vpn = VPNController()
     @StateObject private var store = ProfileStore()
+
+    init() {
+        NSApplication.shared.setActivationPolicy(.accessory)
+    }
 
     var body: some Scene {
         MenuBarExtra {

@@ -1,8 +1,8 @@
 # LiteVPN
 
-[English](README.md) | **简体中文**
+[English](README.md) | **简体中文** | [Türkçe](README.tr.md)
 
-![macOS 13+](https://img.shields.io/badge/macOS-13%2B-green.svg)
+![macOS 26+](https://img.shields.io/badge/macOS-26%2B-green.svg)
 ![Swift](https://img.shields.io/badge/Swift-5-orange.svg)
 ![License GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-lightgray.svg)
 
@@ -16,39 +16,22 @@
 
 - **菜单栏常驻** (无 Dock 图标), 一键连接 / 断开
 - **导入 .ovpn**: 拖拽进面板或文件选择器, 导入时即时解析校验, 多配置切换
-- **实时状态**: 连接时长, 上下行流量
-- **Clash 兼容模式**: 不接管默认路由, 与 Clash TUN / 系统代理分流共存 (见下文)
+- **Vitals 风格实时状态**: 连接时长, 实时上下行速度, 累计流量, 流量图表与公网 IP
+- **多配置管理**: 导入、选择、重命名和删除 `.ovpn` 配置, 按名称排序
 - **断线自动重连** (TunnelKit 内置), **开机启动** (可选)
-- 隧道运行在独立的 Network Extension 进程中, 主应用退出后连接照常保持
+- 隧道作为 macOS Network Extension 系统扩展运行, 退出菜单栏应用不会移除 VPN 服务
 - 界面双语: English / 简体中文 (跟随系统语言)
-- Supabase 风格的亮色界面
+- 深色半透明菜单栏界面
 
 刻意的减法: 仅支持证书内嵌 (`<ca>` / `<cert>` / `<key>` inline) 的标准配置, 不支持用户名密码认证.
-
-## 与 Clash 共存
-
-VPN 客户端与 Clash 的冲突本质是**路由权之争**. LiteVPN 的「Clash 兼容模式」打开后:
-
-- LiteVPN 不接管默认路由, 只认领配置文件与服务器推送的具体网段 (如 `10.0.0.0/8`)
-- 命中 VPN 网段的流量走 OpenVPN 隧道, 其余流量照常走 Clash (TUN 模式或系统代理均可)
-- 路由表按"更具体的网段优先"自动裁决, 两张虚拟网卡互不抢地盘
-
-建议的 Clash 侧配合:
-
-```yaml
-rules:
-  - IP-CIDR,<你的VPN服务器IP>/32,DIRECT   # 避免 VPN 握手流量绕道代理
-```
-
-若需通过域名访问 VPN 内网服务, 将相关域名加入 Clash 的 `fake-ip-filter`.
 
 ## 架构
 
 ```
 ┌─────────────────────────┐      ┌──────────────────────────────┐
-│ LiteVPN.app (菜单栏)     │      │ LiteVPNTunnel.appex          │
+│ LiteVPN.app (菜单栏)     │      │ LiteVPNTunnel.systemextension│
 │ SwiftUI MenuBarExtra    │─────▶│ NEPacketTunnelProvider       │
-│ NetworkExtensionVPN     │ NE   │ └─ TunnelKit OpenVPN 引擎    │
+│ SystemExtensionInstaller│ NE   │ └─ TunnelKit OpenVPN 引擎    │
 │ 配置管理 / 状态 / 流量    │◀─────│    (协议 + 数据通道)          │
 └─────────────────────────┘ AppGroup └──────────────────────────┘
 ```
@@ -57,30 +40,30 @@ rules:
 - TunnelKit v6.3.2 已 vendor 至 `Vendor/tunnelkit/` 并剥离 WireGuard 部分 (上游仓库已归档, 其依赖的 wireguard-apple 仓库已被删除, 远端引用不再可靠), 修改声明见 [Vendor/tunnelkit/LITEVPN-MODIFICATIONS.md](Vendor/tunnelkit/LITEVPN-MODIFICATIONS.md)
 - 加密层通过 `.upToNextMinor` 锁定在 OpenSSL **3.5 LTS** 线 (维护期至 2030 年 4 月), 依赖解析只会升 3.5.x 内的 patch 版本, 不会漂移到短维护期的版本线
 
-## 构建
+## 构建与直接分发
 
-依赖: Xcode (完整版), [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`), 付费 Apple 开发者账号 (Network Extension 能力需要).
+依赖: macOS 26 或更新版本, Xcode, [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`), 以及 Apple Developer Program 会员资格.
 
-1. **改成你自己的签名信息** (两处):
-   - `project.yml` → `DEVELOPMENT_TEAM` 改为你的 Team ID
-   - `App/AppConstants.swift` → `appGroup` 的 Team ID 前缀同步修改
-2. 生成工程并构建:
+本地生成并构建:
 
 ```bash
 xcodegen generate
-open LiteVPN.xcodeproj   # 在 Xcode 中直接 Run, 自动签名会生成所需描述文件
+xcodebuild -project LiteVPN.xcodeproj -scheme LiteVPN \
+  -derivedDataPath Build -allowProvisioningUpdates build
 ```
 
-或命令行构建:
+若要在 Mac App Store 之外分发, 请使用 **Developer ID Application** 证书签名并对应用进行公证。在 Certificates, Identifiers & Profiles 中, 为两个 App ID (`com.egemenince.LiteVPN` 和 `com.egemenince.LiteVPN.Tunnel`) 启用 System Extension Packet Tunnel 能力, 并创建对应的 Developer ID 描述文件。工程使用 system extension 网络扩展权限和 hardened runtime.
+
+将 `notarytool` 钥匙串配置文件命名为 `LiteVPN-Notary`, 设置两个描述文件名称后执行:
 
 ```bash
-xcodebuild -project LiteVPN.xcodeproj -scheme LiteVPN \
-  -allowProvisioningUpdates -allowProvisioningDeviceRegistration build
+xcodegen generate
+LITEVPN_APP_PROFILE="<应用 Developer ID 描述文件名>" \
+LITEVPN_TUNNEL_PROFILE="<系统扩展 Developer ID 描述文件名>" \
+Scripts/release-direct.sh
 ```
 
-首次连接时 macOS 会弹出"LiteVPN 想要添加 VPN 配置"的系统确认, 允许一次即可.
-
-> **不提供预编译包.** macOS Network Extension 应用无法以"任意 Mac 下载即用"的形式分发 (需逐机签名), 因此请用自己的开发者账号从源码构建 (约 5 分钟).
+脚本会归档、签名、提交公证、装订公证票据, 并在 `Build/DirectDistribution/` 下生成 ZIP。首次运行时, macOS 可能要求用户在“系统设置”中批准 LiteVPN 的 VPN 系统扩展.
 
 ## 使用
 

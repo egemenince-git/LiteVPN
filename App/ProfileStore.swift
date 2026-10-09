@@ -93,6 +93,19 @@ final class ProfileStore: ObservableObject {
         }
     }
 
+    @discardableResult
+    func rename(_ profile: Profile, to newName: String) -> Bool {
+        let name = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty,
+              !profiles.contains(where: { $0.id != profile.id && $0.name.caseInsensitiveCompare(name) == .orderedSame }),
+              let index = profiles.firstIndex(where: { $0.id == profile.id }) else {
+            return false
+        }
+        profiles[index].name = name
+        save()
+        return true
+    }
+
     private func uniqueName(_ base: String) -> String {
         var name = base
         var counter = 2

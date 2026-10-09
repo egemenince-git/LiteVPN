@@ -8,13 +8,42 @@
 "Duration" = "Duration";
 "Down" = "Down";
 "Up" = "Up";
+"Live Traffic" = "Live Traffic";
+"Public IP" = "Public IP";
+"Checking…" = "Checking…";
+"Unavailable" = "Unavailable";
+"Retry" = "Retry";
+"Download" = "Download";
+"Upload" = "Upload";
+"Received" = "Received";
+"Sent" = "Sent";
+"LIVE" = "LIVE";
+
+/* Connection panel */
+"Secure connection" = "Secure connection";
+"VPN is off" = "VPN is off";
+"Ready with %@" = "Ready with %@";
+"Select a profile to get started" = "Select a profile to get started";
+"Active profile" = "Active profile";
+"Selected profile" = "Selected profile";
+"or use Import to browse files" = "or use Import to browse files";
+"Live download and upload traffic chart" = "Live download and upload traffic chart";
 
 /* Actions */
 "Connect" = "Connect";
 "Disconnect" = "Disconnect";
 "Cancel" = "Cancel";
 "Disconnecting…" = "Disconnecting…";
+"Preparing…" = "Preparing…";
+"Approve LiteVPN in System Settings to finish enabling VPN." = "Approve LiteVPN in System Settings to finish enabling VPN.";
 "Delete" = "Delete";
+"Rename" = "Rename";
+"Rename Profile" = "Rename Profile";
+"Enter a new name for this profile." = "Enter a new name for this profile.";
+"Save" = "Save";
+"Profile name unavailable" = "Profile name unavailable";
+"Profile names must be non-empty and unique." = "Profile names must be non-empty and unique.";
+"OK" = "OK";
 "Quit" = "Quit";
 "Import" = "Import";
 

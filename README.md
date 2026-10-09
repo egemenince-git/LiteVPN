@@ -1,8 +1,8 @@
 # LiteVPN
 
-**English** | [简体中文](README.zh-CN.md)
+**English** | [简体中文](README.zh-CN.md) | [Türkçe](README.tr.md)
 
-![macOS 13+](https://img.shields.io/badge/macOS-13%2B-green.svg)
+![macOS 26+](https://img.shields.io/badge/macOS-26%2B-green.svg)
 ![Swift](https://img.shields.io/badge/Swift-5-orange.svg)
 ![License GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-lightgray.svg)
 
@@ -16,39 +16,22 @@ A minimal, lightweight **OpenVPN menu bar client for macOS** — built as an alt
 
 - **Lives in the menu bar** (no Dock icon), one-click connect / disconnect
 - **.ovpn import**: drag & drop onto the panel or use the file picker, validated at import time, multiple profiles
-- **Live status**: connection duration, download / upload traffic
-- **Clash Compatible Mode**: leaves the default route alone so it coexists with Clash TUN / system proxy (see below)
+- **Vitals-inspired live status**: connection duration, live download / upload rates, cumulative traffic, traffic graph, and public IP
+- **Multiple profiles**: import, select, rename, and delete `.ovpn` profiles; profile names are sorted alphabetically
 - **Auto-reconnect** on drops (built into TunnelKit), optional **Launch at Login**
-- Tunnel runs in a separate Network Extension process — quitting the app keeps the connection alive
+- Tunnel runs as a macOS Network Extension system extension — quitting the menu bar app does not remove the VPN service
 - Localized UI: English & 简体中文 (follows system language)
-- Supabase-style light interface
+- Dark, translucent menu bar interface
 
 Deliberately minimal: only certificate-embedded profiles (inline `<ca>` / `<cert>` / `<key>`) are supported. No username/password authentication.
-
-## Coexisting with Clash
-
-Conflicts between VPN clients and Clash come down to **who owns the routing table**. With Clash Compatible Mode enabled:
-
-- LiteVPN does not take over the default route; it only claims the specific subnets from your profile and server-pushed routes (e.g. `10.0.0.0/8`)
-- Traffic to VPN subnets goes through the OpenVPN tunnel; everything else flows through Clash as usual (TUN mode or system proxy)
-- The routing table arbitrates by longest-prefix match — the two virtual interfaces never fight
-
-Recommended Clash-side configuration:
-
-```yaml
-rules:
-  - IP-CIDR,<your-vpn-server-ip>/32,DIRECT   # keep the VPN handshake out of the proxy
-```
-
-If you access intranet services by domain name, add those domains to Clash's `fake-ip-filter`.
 
 ## Architecture
 
 ```
 ┌─────────────────────────┐      ┌──────────────────────────────┐
-│ LiteVPN.app (menu bar)  │      │ LiteVPNTunnel.appex          │
+│ LiteVPN.app (menu bar)  │      │ LiteVPNTunnel.systemextension│
 │ SwiftUI MenuBarExtra    │─────▶│ NEPacketTunnelProvider       │
-│ NetworkExtensionVPN     │ NE   │ └─ TunnelKit OpenVPN engine  │
+│ SystemExtensionInstaller│ NE   │ └─ TunnelKit OpenVPN engine  │
 │ profiles/status/traffic │◀─────│    (protocol + data channel) │
 └─────────────────────────┘ AppGroup └──────────────────────────┘
 ```
@@ -57,36 +40,38 @@ If you access intranet services by domain name, add those domains to Clash's `fa
 - TunnelKit v6.3.2 is vendored at `Vendor/tunnelkit/` with WireGuard stripped (upstream is archived and its wireguard-apple dependency repo was deleted, so remote references are no longer reliable) — see [Vendor/tunnelkit/LITEVPN-MODIFICATIONS.md](Vendor/tunnelkit/LITEVPN-MODIFICATIONS.md)
 - The crypto layer is pinned to the OpenSSL **3.5 LTS** line (supported until April 2030) via `.upToNextMinor`, so dependency resolution only picks up 3.5.x patch releases and never drifts onto a short-lived release line
 
-## Building
+## Build and direct distribution
 
-Requirements: Xcode (full install), [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`), and a paid Apple Developer account (required for the Network Extension capability).
+Requirements: macOS 26 or later, Xcode, [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`), and an Apple Developer Program membership.
 
-1. **Use your own signing identity** (two places):
-   - `project.yml` → set `DEVELOPMENT_TEAM` to your Team ID
-   - `App/AppConstants.swift` → update the Team ID prefix in `appGroup`
-2. Generate the project and build:
+Generate and build locally:
 
 ```bash
 xcodegen generate
-open LiteVPN.xcodeproj   # Run in Xcode; automatic signing creates the profiles
+xcodebuild -project LiteVPN.xcodeproj -scheme LiteVPN \
+  -derivedDataPath Build -allowProvisioningUpdates build
 ```
 
-Or from the command line:
+For downloads outside the Mac App Store, sign with a **Developer ID Application** certificate and notarize the app. In Certificates, Identifiers & Profiles, enable the system-extension Packet Tunnel capability for both app IDs (`com.egemenince.LiteVPN` and `com.egemenince.LiteVPN.Tunnel`) and create the matching Developer ID provisioning profiles. The project uses the system-extension Network Extension entitlement and hardened runtime.
+
+Save a `notarytool` Keychain profile named `LiteVPN-Notary`, then provide the two profile names and run:
 
 ```bash
-xcodebuild -project LiteVPN.xcodeproj -scheme LiteVPN \
-  -allowProvisioningUpdates -allowProvisioningDeviceRegistration build
+xcodegen generate
+LITEVPN_APP_PROFILE="<app Developer ID profile name>" \
+LITEVPN_TUNNEL_PROFILE="<system extension Developer ID profile name>" \
+Scripts/release-direct.sh
 ```
 
-On first connect macOS will ask to add a VPN configuration — allow it once.
-
-> **No prebuilt binary is shipped.** A macOS Network Extension app can't be distributed in a form that runs on arbitrary Macs without per-machine signing, so building from source with your own Apple Developer account (about 5 minutes) is the supported path.
+The script archives, signs, submits for notarization, staples the ticket, and writes a ZIP under `Build/DirectDistribution/`. On first launch, macOS may ask the user to approve LiteVPN in System Settings before its VPN system extension can activate.
 
 ## Usage
 
 1. Click the shield icon in the menu bar
 2. Drag in your `.ovpn` file (or click "+ Import")
 3. Hit **Connect**
+
+For a Turkish walkthrough, see [README.tr.md](README.tr.md).
 
 ## Credits
 
@@ -100,3 +85,5 @@ On first connect macOS will ask to add a VPN configuration — allow it once.
 ## Author
 
 云中江树 (yzfly) · WeChat Official Account: 云中江树
+
+This personal fork is maintained by Egemen Ince and keeps the upstream project's GPL-3.0 license and attribution.

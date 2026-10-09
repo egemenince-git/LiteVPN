@@ -8,13 +8,42 @@
 "Duration" = "时长";
 "Down" = "下行";
 "Up" = "上行";
+"Live Traffic" = "实时流量";
+"Public IP" = "公网 IP";
+"Checking…" = "正在查询…";
+"Unavailable" = "不可用";
+"Retry" = "重试";
+"Download" = "下载";
+"Upload" = "上传";
+"Received" = "已接收";
+"Sent" = "已发送";
+"LIVE" = "实时";
+
+/* 连接面板 */
+"Secure connection" = "安全连接";
+"VPN is off" = "VPN 已关闭";
+"Ready with %@" = "已就绪：%@";
+"Select a profile to get started" = "选择一个配置以开始";
+"Active profile" = "当前配置";
+"Selected profile" = "已选配置";
+"or use Import to browse files" = "或使用“导入”浏览文件";
+"Live download and upload traffic chart" = "实时下载和上传流量图表";
 
 /* 操作 */
 "Connect" = "连接";
 "Disconnect" = "断开连接";
 "Cancel" = "取消";
 "Disconnecting…" = "断开中…";
+"Preparing…" = "正在准备…";
+"Approve LiteVPN in System Settings to finish enabling VPN." = "请在系统设置中批准 LiteVPN，以完成 VPN 启用。";
 "Delete" = "删除";
+"Rename" = "重命名";
+"Rename Profile" = "重命名配置";
+"Enter a new name for this profile." = "输入此配置的新名称。";
+"Save" = "保存";
+"Profile name unavailable" = "配置名称不可用";
+"Profile names must be non-empty and unique." = "配置名称不能为空且不能重复。";
+"OK" = "好";
 "Quit" = "退出";
 "Import" = "导入";
 
