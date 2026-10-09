@@ -32,8 +32,8 @@ Swift 菜单栏应用使用 [TunnelKit](https://github.com/partout-io/tunnelkit)
 ┌─────────────────────────┐      ┌──────────────────────────────┐
 │ LiteVPN.app (菜单栏)     │      │ LiteVPNTunnel.systemextension│
 │ SwiftUI MenuBarExtra    │─────▶│ NEPacketTunnelProvider       │
-│ SystemExtensionInstaller│ NE   │ └─ TunnelKit OpenVPN 引擎    │
-│ 配置管理 / 状态 / 流量    │◀─────│    (协议 + 数据通道)          │
+│ SystemExtensionInstaller│ NE   │ ├─ TunnelKit OpenVPN 引擎    │
+│ 配置管理 / 状态 / 流量    │◀─────│ └─ WireGuardKit + Go 后端   │
 └─────────────────────────┘ AppGroup └──────────────────────────┘
 ```
 

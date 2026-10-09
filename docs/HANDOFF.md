@@ -7,7 +7,7 @@
 - Current release: **1.1.7**, build **10**, tag `v1.1.7`.
 - Release page: <https://github.com/egemenince-git/LiteVPN/releases/tag/v1.1.7>.
 - The release ZIP is Developer ID signed, notarized by Apple, and stapled.
-- The `feature/wireguard` branch contains validated source for **1.1.7**, build **10**. It is not tagged or published as a GitHub release.
+- The `main` and `feature/wireguard` branches contain the published release source; `v1.1.7` is the current public release.
 - The public repository keeps the upstream GPL-3.0 license and attribution.
 
 ## Product behavior
