@@ -64,6 +64,11 @@ private struct PublicIPResponse: Decodable {
     let ip: String
 }
 
+private enum PublicIPEndpoint {
+    case plainText(URL)
+    case json(URL)
+}
+
 @MainActor
 final class VPNController: ObservableObject {
     @Published private(set) var status: VPNStatus = .disconnected
@@ -125,28 +130,41 @@ final class VPNController: ObservableObject {
                 needsSystemExtensionApproval = false
                 await vpn.prepare()
 
-                let parsed = try OpenVPN.ConfigurationParser.parsed(fromContents: profile.ovpnText)
-                var ovpnConfiguration = parsed.configuration
-                if UserDefaults.standard.bool(forKey: "clashCompatMode") {
-                    // Clash 兼容: 不接管默认路由, 只保留配置/服务器下发的具体网段路由,
-                    // 让 Clash 的系统代理继续处理其余流量
-                    var builder = ovpnConfiguration.builder()
-                    builder.routingPolicies = []
-                    ovpnConfiguration = builder.build()
+                switch profile.protocolKind {
+                case .wireGuard:
+                    let cfg = WireGuardProviderConfiguration(
+                        title: profile.name,
+                        configurationText: profile.configurationText
+                    )
+                    try await vpn.reconnect(
+                        AppConstants.tunnelBundleId,
+                        configuration: cfg,
+                        extra: nil,
+                        after: .seconds(1)
+                    )
+                case .openVPN:
+                    let parsed = try OpenVPN.ConfigurationParser.parsed(fromContents: profile.configurationText)
+                    var ovpnConfiguration = parsed.configuration
+                    if UserDefaults.standard.bool(forKey: "clashCompatMode") {
+                        // Clash compatibility leaves the default route alone and routes only VPN subnets.
+                        var builder = ovpnConfiguration.builder()
+                        builder.routingPolicies = []
+                        ovpnConfiguration = builder.build()
+                    }
+                    var cfg = OpenVPN.ProviderConfiguration(
+                        profile.name,
+                        appGroup: AppConstants.appGroup,
+                        configuration: ovpnConfiguration
+                    )
+                    cfg.shouldDebug = true
+                    cfg.debugLogPath = "debug.log"
+                    try await vpn.reconnect(
+                        AppConstants.tunnelBundleId,
+                        configuration: cfg,
+                        extra: nil,
+                        after: .seconds(1)
+                    )
                 }
-                var cfg = OpenVPN.ProviderConfiguration(
-                    profile.name,
-                    appGroup: AppConstants.appGroup,
-                    configuration: ovpnConfiguration
-                )
-                cfg.shouldDebug = true
-                cfg.debugLogPath = "debug.log"
-                try await vpn.reconnect(
-                    AppConstants.tunnelBundleId,
-                    configuration: cfg,
-                    extra: nil,
-                    after: .seconds(1)
-                )
             } catch {
                 lastErrorMessage = error.localizedDescription
             }
@@ -197,26 +215,69 @@ final class VPNController: ObservableObject {
             }
 
             do {
-                var request = URLRequest(url: URL(string: "https://api64.ipify.org?format=json")!)
-                request.timeoutInterval = 8
-                request.cachePolicy = .reloadIgnoringLocalCacheData
-                request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-                let (data, response) = try await URLSession.shared.data(for: request)
-                guard !Task.isCancelled,
-                      let response = response as? HTTPURLResponse,
-                      (200..<300).contains(response.statusCode) else {
-                    throw URLError(.badServerResponse)
-                }
-
-                let result = try JSONDecoder().decode(PublicIPResponse.self, from: data)
-                guard !result.ip.isEmpty else { throw URLError(.cannotParseResponse) }
-                publicIPAddress = result.ip
+                publicIPAddress = try await lookupPublicIP()
             } catch {
                 guard !Task.isCancelled else { return }
                 publicIPLookupFailed = true
             }
         }
+    }
+
+    private func lookupPublicIP() async throws -> String {
+        let endpoints: [PublicIPEndpoint] = [
+            .plainText(URL(string: "https://ifconfig.me/ip")!),
+            .json(URL(string: "https://api64.ipify.org?format=json")!),
+            .json(URL(string: "https://api.ipify.org?format=json")!)
+        ]
+        var lastError: Error = URLError(.cannotLoadFromNetwork)
+
+        for endpoint in endpoints {
+            guard !Task.isCancelled else { throw CancellationError() }
+            let url: URL
+            switch endpoint {
+            case .plainText(let value), .json(let value):
+                url = value
+            }
+
+            do {
+                var request = URLRequest(url: url)
+                request.timeoutInterval = 5
+                request.cachePolicy = .reloadIgnoringLocalCacheData
+                request.setValue("application/json, text/plain", forHTTPHeaderField: "Accept")
+
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let response = response as? HTTPURLResponse,
+                      (200..<300).contains(response.statusCode) else {
+                    throw URLError(.badServerResponse)
+                }
+
+                let candidate: String?
+                switch endpoint {
+                case .plainText:
+                    candidate = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                case .json:
+                    candidate = try? JSONDecoder().decode(PublicIPResponse.self, from: data).ip
+                }
+
+                if let candidate, isIPAddress(candidate) {
+                    return candidate
+                }
+                throw URLError(.cannotParseResponse)
+            } catch {
+                lastError = error
+            }
+        }
+
+        throw lastError
+    }
+
+    private func isIPAddress(_ value: String) -> Bool {
+        var ipv4 = in_addr()
+        if value.withCString({ inet_pton(AF_INET, $0, &ipv4) }) == 1 {
+            return true
+        }
+        var ipv6 = in6_addr()
+        return value.withCString({ inet_pton(AF_INET6, $0, &ipv6) }) == 1
     }
 
     private func resetPublicIP() {

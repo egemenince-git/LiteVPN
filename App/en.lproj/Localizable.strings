@@ -49,8 +49,8 @@
 
 /* Profiles */
 "Profiles" = "Profiles";
-"Drop .ovpn files here to import" = "Drop .ovpn files here to import";
-"Choose .ovpn configuration files" = "Choose .ovpn configuration files";
+"Drop .ovpn or WireGuard .conf files here to import" = "Drop .ovpn or WireGuard .conf files here to import";
+"Choose OpenVPN or WireGuard configuration files" = "Choose OpenVPN or WireGuard configuration files";
 
 /* Settings */
 "Clash Compatible Mode" = "Clash Compatible Mode";
@@ -60,3 +60,4 @@
 /* Errors */
 "Unable to read file contents" = "Unable to read file contents";
 "This profile requires username/password authentication. Only certificate-embedded profiles are supported." = "This profile requires username/password authentication. Only certificate-embedded profiles are supported.";
+"This WireGuard configuration is invalid or unsupported." = "This WireGuard configuration is invalid or unsupported.";

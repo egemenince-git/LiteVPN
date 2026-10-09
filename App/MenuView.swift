@@ -338,7 +338,7 @@ struct MenuView: View {
             Image(systemName: "tray.and.arrow.down")
                 .font(.system(size: 17, weight: .light))
                 .foregroundStyle(Theme.textSecondary)
-            Text("Drop .ovpn files here to import")
+            Text("Drop .ovpn or WireGuard .conf files here to import")
                 .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(Theme.textSecondary)
             Text("or use Import to browse files")
@@ -368,6 +368,9 @@ struct MenuView: View {
                     .lineLimit(1)
             }
             Spacer()
+            Text(profile.protocolKind == .wireGuard ? "WG" : "OpenVPN")
+                .font(.system(size: 8, weight: .medium, design: .rounded))
+                .foregroundStyle(Theme.textSecondary)
             if isSelected && vpn.status == .connected {
                 Circle().fill(Theme.green).frame(width: 6, height: 6)
             }
@@ -537,9 +540,9 @@ struct MenuView: View {
 
     private func importFromPanel() {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [UTType(filenameExtension: "ovpn") ?? .data]
+        panel.allowedContentTypes = ["ovpn", "conf", "wg", "wgconf"].compactMap { UTType(filenameExtension: $0) }
         panel.allowsMultipleSelection = true
-        panel.message = NSLocalizedString("Choose .ovpn configuration files", comment: "open panel message")
+        panel.message = NSLocalizedString("Choose OpenVPN or WireGuard configuration files", comment: "open panel message")
         NSApp.activate(ignoringOtherApps: true)
         guard panel.runModal() == .OK else { return }
         importURLs(panel.urls)
@@ -550,7 +553,7 @@ struct MenuView: View {
         for provider in providers where provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
             handled = true
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                guard let url, url.pathExtension.lowercased() == "ovpn" else { return }
+                guard let url, ["ovpn", "conf", "wg", "wgconf"].contains(url.pathExtension.lowercased()) else { return }
                 Task { @MainActor in importURLs([url]) }
             }
         }

@@ -1,11 +1,49 @@
 import Foundation
 import TunnelKitOpenVPN
+import WireGuardKit
+
+enum VPNProtocolKind: String, Codable {
+    case openVPN
+    case wireGuard
+}
 
 struct Profile: Identifiable, Codable, Equatable {
     let id: UUID
     var name: String
-    var ovpnText: String
+    var protocolKind: VPNProtocolKind
+    var configurationText: String
     let createdAt: Date
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, protocolKind, configurationText, ovpnText, createdAt
+    }
+
+    init(id: UUID, name: String, protocolKind: VPNProtocolKind, configurationText: String, createdAt: Date) {
+        self.id = id
+        self.name = name
+        self.protocolKind = protocolKind
+        self.configurationText = configurationText
+        self.createdAt = createdAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        name = try values.decode(String.self, forKey: .name)
+        createdAt = try values.decode(Date.self, forKey: .createdAt)
+        protocolKind = try values.decodeIfPresent(VPNProtocolKind.self, forKey: .protocolKind) ?? .openVPN
+        configurationText = try values.decodeIfPresent(String.self, forKey: .configurationText)
+            ?? values.decode(String.self, forKey: .ovpnText)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(id, forKey: .id)
+        try values.encode(name, forKey: .name)
+        try values.encode(protocolKind, forKey: .protocolKind)
+        try values.encode(configurationText, forKey: .configurationText)
+        try values.encode(createdAt, forKey: .createdAt)
+    }
 }
 
 @MainActor
@@ -24,6 +62,7 @@ final class ProfileStore: ObservableObject {
     enum ImportError: LocalizedError {
         case unreadable
         case needsCredentials
+        case invalidWireGuard
 
         var errorDescription: String? {
             switch self {
@@ -34,6 +73,8 @@ final class ProfileStore: ObservableObject {
                     "This profile requires username/password authentication. Only certificate-embedded profiles are supported.",
                     comment: "import error"
                 )
+            case .invalidWireGuard:
+                return NSLocalizedString("This WireGuard configuration is invalid or unsupported.", comment: "import error")
             }
         }
     }
@@ -69,14 +110,33 @@ final class ProfileStore: ObservableObject {
             throw ImportError.unreadable
         }
 
-        // 导入即校验, 解析失败直接抛 ConfigurationError
-        let result = try OpenVPN.ConfigurationParser.parsed(fromContents: text)
-        if result.configuration.authUserPass == true {
-            throw ImportError.needsCredentials
+        let kind: VPNProtocolKind
+        switch url.pathExtension.lowercased() {
+        case "ovpn":
+            let result = try OpenVPN.ConfigurationParser.parsed(fromContents: text)
+            if result.configuration.authUserPass == true {
+                throw ImportError.needsCredentials
+            }
+            kind = .openVPN
+        case "conf", "wg", "wgconf":
+            do {
+                _ = try TunnelConfiguration(fromWgQuickConfig: text)
+            } catch {
+                throw ImportError.invalidWireGuard
+            }
+            kind = .wireGuard
+        default:
+            throw ImportError.unreadable
         }
 
         let baseName = url.deletingPathExtension().lastPathComponent
-        let profile = Profile(id: UUID(), name: uniqueName(baseName), ovpnText: text, createdAt: Date())
+        let profile = Profile(
+            id: UUID(),
+            name: uniqueName(baseName),
+            protocolKind: kind,
+            configurationText: text,
+            createdAt: Date()
+        )
         profiles.append(profile)
         save()
         if selectedProfileID == nil {

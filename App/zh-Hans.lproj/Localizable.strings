@@ -49,8 +49,8 @@
 
 /* 配置 */
 "Profiles" = "配置";
-"Drop .ovpn files here to import" = "拖入 .ovpn 文件即可导入";
-"Choose .ovpn configuration files" = "选择 .ovpn 配置文件";
+"Drop .ovpn or WireGuard .conf files here to import" = "拖入 .ovpn 或 WireGuard .conf 文件即可导入";
+"Choose OpenVPN or WireGuard configuration files" = "选择 OpenVPN 或 WireGuard 配置文件";
 
 /* 设置 */
 "Clash Compatible Mode" = "Clash 兼容模式";
@@ -60,3 +60,4 @@
 /* 错误 */
 "Unable to read file contents" = "无法读取文件内容";
 "This profile requires username/password authentication. Only certificate-embedded profiles are supported." = "该配置需要用户名密码认证, 当前版本仅支持证书内嵌的配置";
+"This WireGuard configuration is invalid or unsupported." = "WireGuard 配置无效或包含不支持的字段。";
