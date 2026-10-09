@@ -1,7 +1,58 @@
 import Foundation
+import Darwin
 import NetworkExtension
 import TunnelKit
 import TunnelKitOpenVPN
+
+/// Reads macOS utun byte counters when the extension's shared counter is unavailable.
+private final class SystemTunnelTrafficCounter {
+    private var baseline: DataCount?
+
+    func begin() {
+        baseline = Self.snapshot()
+    }
+
+    func reset() {
+        baseline = nil
+    }
+
+    func current() -> DataCount? {
+        guard let baseline, let snapshot = Self.snapshot() else { return nil }
+        return DataCount(
+            snapshot.received >= baseline.received ? snapshot.received - baseline.received : snapshot.received,
+            snapshot.sent >= baseline.sent ? snapshot.sent - baseline.sent : snapshot.sent
+        )
+    }
+
+    private static func snapshot() -> DataCount? {
+        var firstInterface: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&firstInterface) == 0, let firstInterface else { return nil }
+        defer { freeifaddrs(firstInterface) }
+
+        var received: UInt = 0
+        var sent: UInt = 0
+        var foundTunnel = false
+        var interface = firstInterface
+
+        repeat {
+            let entry = interface.pointee
+            if let address = entry.ifa_addr,
+               address.pointee.sa_family == UInt8(AF_LINK),
+               let name = entry.ifa_name,
+               String(cString: name).hasPrefix("utun"),
+               let rawData = entry.ifa_data {
+                let data = rawData.assumingMemoryBound(to: if_data.self).pointee
+                received &+= UInt(data.ifi_ibytes)
+                sent &+= UInt(data.ifi_obytes)
+                foundTunnel = true
+            }
+            guard let next = entry.ifa_next else { break }
+            interface = next
+        } while true
+
+        return foundTunnel ? DataCount(received, sent) : nil
+    }
+}
 
 struct TrafficSample: Identifiable {
     let id = UUID()
@@ -30,6 +81,7 @@ final class VPNController: ObservableObject {
 
     private let vpn = NetworkExtensionVPN()
     private let systemExtensionInstaller = SystemExtensionInstaller()
+    private let systemTrafficCounter = SystemTunnelTrafficCounter()
     private var dataCountTimer: Timer?
     private var publicIPTask: Task<Void, Never>?
     private var previousTrafficCount: DataCount?
@@ -114,15 +166,18 @@ final class VPNController: ObservableObject {
         switch newStatus {
         case .connected:
             lastErrorMessage = nil
+            systemTrafficCounter.begin()
             startDataCountTimer()
             refreshPublicIP()
         case .disconnected:
             stopDataCountTimer()
+            systemTrafficCounter.reset()
             dataCount = nil
             resetTraffic()
             resetPublicIP()
         default:
             stopDataCountTimer()
+            systemTrafficCounter.reset()
             resetTraffic()
             resetPublicIP()
         }
@@ -176,9 +231,11 @@ final class VPNController: ObservableObject {
         dataCountTimer?.invalidate()
         resetTraffic()
         dataCountTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            let count = UserDefaults(suiteName: AppConstants.appGroup)?.openVPNDataCount
             Task { @MainActor in
-                self?.updateTraffic(with: count)
+                guard let self else { return }
+                let count = UserDefaults(suiteName: AppConstants.appGroup)?.openVPNDataCount
+                    ?? self.systemTrafficCounter.current()
+                self.updateTraffic(with: count)
             }
         }
     }
