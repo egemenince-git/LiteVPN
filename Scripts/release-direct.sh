@@ -7,6 +7,7 @@ STAMP="$(date -u +%Y%m%d-%H%M%S)"
 ARCHIVE_PATH="$BUILD_DIR/LiteVPN-$STAMP.xcarchive"
 NOTARY_PROFILE="${NOTARY_PROFILE:-LiteVPN-Notary}"
 TEAM_ID="99U7KZC748"
+TUNNEL_BUNDLE_ID="com.egemenince.LiteVPN.Tunnel"
 : "${LITEVPN_APP_PROFILE:?Set LITEVPN_APP_PROFILE to the app's Developer ID provisioning profile name}"
 : "${LITEVPN_TUNNEL_PROFILE:?Set LITEVPN_TUNNEL_PROFILE to the system extension's Developer ID provisioning profile name}"
 
@@ -29,6 +30,18 @@ xcodebuild \
 APP_PATH="$ARCHIVE_PATH/Products/Applications/LiteVPN.app"
 if [[ ! -d "$APP_PATH" ]]; then
   echo "Archive did not contain LiteVPN.app: $APP_PATH" >&2
+  exit 1
+fi
+
+SYSTEM_EXTENSION_PATH="$APP_PATH/Contents/Library/SystemExtensions/$TUNNEL_BUNDLE_ID.systemextension"
+if [[ ! -d "$SYSTEM_EXTENSION_PATH" ]]; then
+  echo "System extension must be embedded as $TUNNEL_BUNDLE_ID.systemextension: $SYSTEM_EXTENSION_PATH" >&2
+  exit 1
+fi
+
+EMBEDDED_TUNNEL_BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$SYSTEM_EXTENSION_PATH/Contents/Info.plist")
+if [[ "$EMBEDDED_TUNNEL_BUNDLE_ID" != "$TUNNEL_BUNDLE_ID" ]]; then
+  echo "Expected system extension ID $TUNNEL_BUNDLE_ID, found $EMBEDDED_TUNNEL_BUNDLE_ID" >&2
   exit 1
 fi
 

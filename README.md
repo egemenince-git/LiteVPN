@@ -52,7 +52,7 @@ xcodebuild -project LiteVPN.xcodeproj -scheme LiteVPN \
   -derivedDataPath Build -allowProvisioningUpdates build
 ```
 
-For downloads outside the Mac App Store, sign with a **Developer ID Application** certificate and notarize the app. In Certificates, Identifiers & Profiles, enable the system-extension Packet Tunnel capability for both app IDs (`com.egemenince.LiteVPN` and `com.egemenince.LiteVPN.Tunnel`) and create the matching Developer ID provisioning profiles. The project uses the system-extension Network Extension entitlement and hardened runtime.
+For downloads outside the Mac App Store, sign with a **Developer ID Application** certificate and notarize the app. In Certificates, Identifiers & Profiles, enable the Network Extension capability for the app IDs (`com.egemenince.LiteVPN` and `com.egemenince.LiteVPN.Tunnel`) and create the matching Developer ID provisioning profiles. The system extension bundle is named after its bundle identifier (`com.egemenince.LiteVPN.Tunnel.systemextension`); the release script validates the embedded name and identifier before notarization. The project uses the system-extension Network Extension entitlement and hardened runtime.
 
 Save a `notarytool` Keychain profile named `LiteVPN-Notary`, then provide the two profile names and run:
 

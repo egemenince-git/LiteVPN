@@ -51,7 +51,7 @@ Oluşan uygulama `Build/Build/Products/Debug/LiteVPN.app` altında bulunur. Bu f
 
 ## Mac App Store dışından dağıtım
 
-Dağıtım betiği arşiv oluşturur, Developer ID ile imzalar, Apple’a notarizasyon için gönderir, onay biletini uygulamaya ekler ve ZIP üretir. Bu forkta kullanılan profil adları:
+Dağıtım betiği arşiv oluşturur, Developer ID ile imzalar, Apple’a notarizasyon için gönderir, onay biletini uygulamaya ekler ve ZIP üretir. Sistem uzantısı, Apple’ın istediği gibi bundle kimliğiyle aynı ada sahip `.systemextension` paketi olarak gömülür. Betik arşivi notarizasyona göndermeden önce paket adını ve bundle kimliğini doğrular. Bu forkta kullanılan profil adları:
 
 - Uygulama: `LiteVPN App Developer ID Local`
 - Sistem uzantısı: `LiteVPN Tunnel Developer ID Local`
