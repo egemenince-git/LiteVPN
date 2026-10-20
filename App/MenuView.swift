@@ -317,7 +317,7 @@ struct MenuView: View {
                 emptyState
             } else {
                 HStack(spacing: 7) {
-                    Picker("Profiles", selection: Binding(
+                    Picker(selection: Binding(
                         get: { store.selectedProfileID },
                         set: { id in
                             guard let id, let profile = store.profiles.first(where: { $0.id == id }) else { return }
@@ -325,26 +325,35 @@ struct MenuView: View {
                         }
                     )) {
                         ForEach(sortedProfiles) { profile in
-                            HStack {
-                                Text(verbatim: profile.name)
-                                Spacer()
-                                Text(profile.protocolKind == .wireGuard ? "WG" : "OpenVPN")
-                                    .foregroundStyle(Theme.textSecondary)
-                            }
+                            Text(verbatim: profile.name)
                             .tag(Optional(profile.id))
                         }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Theme.green)
+                            Text(verbatim: store.selectedProfile?.name ?? "Profiles")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(Theme.textPrimary)
+                                .lineLimit(1)
+                            Spacer(minLength: 4)
+                            Text(store.selectedProfile?.protocolKind == .wireGuard ? "WG" : "OpenVPN")
+                                .font(.system(size: 8, weight: .medium, design: .rounded))
+                                .foregroundStyle(Theme.textSecondary)
+                        }
                     }
-                    .labelsHidden()
                     .pickerStyle(.menu)
-                    .tint(Theme.textPrimary)
+                    .controlSize(.small)
+                    .font(.system(size: 11))
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                     selectedProfileActions
                 }
                 .padding(.horizontal, 10)
-                .frame(height: 38)
-                .background(Theme.green.opacity(0.11), in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.green.opacity(0.25), lineWidth: 1))
+                .frame(height: 34)
+                .background(Theme.card.opacity(0.55), in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.cardStroke, lineWidth: 1))
             }
         }
     }
@@ -362,12 +371,13 @@ struct MenuView: View {
             }
         } label: {
             Image(systemName: "ellipsis")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Theme.textSecondary)
-                .frame(width: 26, height: 30)
+                .frame(width: 22, height: 26)
                 .contentShape(Rectangle())
         }
         .menuStyle(.borderlessButton)
+        .controlSize(.small)
         .disabled(store.selectedProfile == nil)
         .help("Profile actions")
     }
