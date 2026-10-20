@@ -9,7 +9,6 @@ struct MenuView: View {
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var importErrorMessage: String?
-    @State private var hoveredProfileID: UUID?
     @State private var isDropTargeted = false
 
     var body: some View {
@@ -49,9 +48,8 @@ struct MenuView: View {
 
     private var menuHeight: CGFloat {
         let baseHeight: CGFloat = vpn.status == .connected ? 525 : 390
-        let additionalProfiles = CGFloat(max(0, store.profiles.count - 1)) * 44
         let emptyStateHeight: CGFloat = store.profiles.isEmpty ? 42 : 0
-        return min(maximumMenuHeight, baseHeight + additionalProfiles + emptyStateHeight)
+        return min(maximumMenuHeight, baseHeight + emptyStateHeight)
     }
 
     private var maximumMenuHeight: CGFloat {
@@ -318,13 +316,60 @@ struct MenuView: View {
             if store.profiles.isEmpty {
                 emptyState
             } else {
-                VStack(spacing: 5) {
-                    ForEach(sortedProfiles) { profile in
-                        profileRow(profile)
+                HStack(spacing: 7) {
+                    Picker("Profiles", selection: Binding(
+                        get: { store.selectedProfileID },
+                        set: { id in
+                            guard let id, let profile = store.profiles.first(where: { $0.id == id }) else { return }
+                            selectProfile(profile)
+                        }
+                    )) {
+                        ForEach(sortedProfiles) { profile in
+                            HStack {
+                                Text(verbatim: profile.name)
+                                Spacer()
+                                Text(profile.protocolKind == .wireGuard ? "WG" : "OpenVPN")
+                                    .foregroundStyle(Theme.textSecondary)
+                            }
+                            .tag(Optional(profile.id))
+                        }
                     }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .tint(Theme.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    selectedProfileActions
                 }
+                .padding(.horizontal, 10)
+                .frame(height: 38)
+                .background(Theme.green.opacity(0.11), in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.green.opacity(0.25), lineWidth: 1))
             }
         }
+    }
+
+    private var selectedProfileActions: some View {
+        Menu {
+            if let profile = store.selectedProfile {
+                Button("Rename") { renameProfile(profile) }
+                Button("Delete", role: .destructive) {
+                    if vpn.status != .disconnected && store.selectedProfileID == profile.id {
+                        vpn.disconnect()
+                    }
+                    store.delete(profile)
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Theme.textSecondary)
+                .frame(width: 26, height: 30)
+                .contentShape(Rectangle())
+        }
+        .menuStyle(.borderlessButton)
+        .disabled(store.selectedProfile == nil)
+        .help("Profile actions")
     }
 
     private var sortedProfiles: [Profile] {
@@ -351,51 +396,6 @@ struct MenuView: View {
         .overlay {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(Theme.cardStroke, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-        }
-    }
-
-    private func profileRow(_ profile: Profile) -> some View {
-        let isSelected = store.selectedProfileID == profile.id
-        let isHovered = hoveredProfileID == profile.id
-        return HStack(spacing: 9) {
-            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 13))
-                .foregroundStyle(isSelected ? Theme.green : Theme.textSecondary.opacity(0.6))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: profile.name)
-                    .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-            }
-            Spacer()
-            Text(profile.protocolKind == .wireGuard ? "WG" : "OpenVPN")
-                .font(.system(size: 8, weight: .medium, design: .rounded))
-                .foregroundStyle(Theme.textSecondary)
-            if isSelected && vpn.status == .connected {
-                Circle().fill(Theme.green).frame(width: 6, height: 6)
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, isSelected ? 8 : 7)
-        .background(isSelected ? Theme.green.opacity(0.11) : (isHovered ? Theme.card : .clear), in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(isSelected ? Theme.green.opacity(0.25) : .clear, lineWidth: 1))
-        .contentShape(Rectangle())
-        .onHover { hovering in
-            hoveredProfileID = hovering ? profile.id : nil
-        }
-        .onTapGesture {
-            selectProfile(profile)
-        }
-        .contextMenu {
-            Button("Rename") {
-                renameProfile(profile)
-            }
-            Button("Delete", role: .destructive) {
-                if vpn.status != .disconnected && store.selectedProfileID == profile.id {
-                    vpn.disconnect()
-                }
-                store.delete(profile)
-            }
         }
     }
 
