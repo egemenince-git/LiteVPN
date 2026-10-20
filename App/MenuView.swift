@@ -47,7 +47,7 @@ struct MenuView: View {
     }
 
     private var menuHeight: CGFloat {
-        let baseHeight: CGFloat = vpn.status == .connected ? 525 : 390
+        let baseHeight: CGFloat = vpn.status == .connected ? 610 : 390
         let emptyStateHeight: CGFloat = store.profiles.isEmpty ? 42 : 0
         return min(maximumMenuHeight, baseHeight + emptyStateHeight)
     }
